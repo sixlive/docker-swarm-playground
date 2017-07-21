@@ -1,0 +1,55 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Update APT Cache
+      apt:
+        update_cache: yes
+
+    - name: Install Base Packages
+      apt: name={{item}} state=installed
+      with_items:
+        - vim
+        - python
+        - python-pip
+
+    - name: Download Docker
+      get_url:
+        url: https://get.docker.com
+        dest: /tmp/docker-install.sh
+        mode: 0777
+
+    - name: Install Docker
+      shell: /tmp/docker-install.sh
+
+    - name: Install Docker Compose
+      pip:
+        name: docker-compose
+
+    - name: Add Vagrant To Docker Group
+      user:
+        name: vagrant
+        groups: docker
+        append: yes
+
+    - name: Cleanup
+      shell: apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+    - name: Copy Docker Daemon Config
+      copy:
+        src: config/docker/daemon.json
+        dest: /etc/docker/daemon.json
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Copy Docker Systemd Config
+      copy:
+        src: config/docker/docker.service
+        dest: /lib/systemd/system/docker.service
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Reload Daemons
+      shell: systemctl daemon-reload
