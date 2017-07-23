@@ -12,6 +12,7 @@
         - vim
         - python
         - python-pip
+        - linux-headers-3.16.0-4-amd64
 
     - name: Download Docker
       get_url:
@@ -21,6 +22,18 @@
 
     - name: Install Docker
       shell: /tmp/docker-install.sh
+
+    - name: Download VirtualBox Guest Additions
+      get_url:
+        url: http://download.virtualbox.org/virtualbox/5.1.24/VBoxGuestAdditions_5.1.24.iso
+        dest: /tmp/vbox-guest-additions.iso
+        mode: 0744
+
+    - name: Mount VirtualBox Guest Additions
+      shell: mount -o loop /tmp/vbox-guest-additions.iso /media/cdrom
+
+    - name: Install VirtualBox Guest Additions
+      shell: sh /media/cdrom/VBoxLinuxAdditions.run
 
     - name: Install Docker Compose
       pip:
@@ -32,12 +45,12 @@
         groups: docker
         append: yes
 
-    - name: Cleanup
-      shell: apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    - name: System Cleanup
+      shell: apt-get remove -y linux-headers-3.16.0-4-amd64 && apt-get clean && apt-get autoremove -y && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
     - name: Copy Docker Daemon Config
       copy:
-        src: config/docker/daemon.json
+        src: provision/config/docker/daemon.json
         dest: /etc/docker/daemon.json
         owner: root
         group: root
@@ -45,7 +58,7 @@
 
     - name: Copy Docker Systemd Config
       copy:
-        src: config/docker/docker.service
+        src: provision/config/docker/docker.service
         dest: /lib/systemd/system/docker.service
         owner: root
         group: root
